@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام مالي بسيط</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            direction: rtl;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            margin-left: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        input, select, button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: right;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        #pdfPreview {
+            display: none;
+            background-color: white;
+            padding: 20px;
+            width: 600px;
+            border: 1px solid #ddd;
+            margin: 20px auto;
+            text-align: right;
+            direction: rtl;
+        }
+        #pdfPreview h2 {
+            text-align: center;
+            color: #3498db;
+            margin-bottom: 20px;
+        }
+        #pdfPreview p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .pdf-header {
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .pdf-footer {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            text-align: center;
+        }
+        .transactions {
+            margin-top: 20px;
+        }
+        .search-bar {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            flex: 1;
+            margin-left: 10px;
+        }
+        .search-bar button {
+            width: auto;
+        }
+        .history-item {
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border-right: 5px solid #3498db;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>نظام مالي بسيط</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="create">إنشاء عملة جديدة</div>
+            <div class="tab" data-tab="transfer">نقل ملكية</div>
+            <div class="tab" data-tab="view">عرض العملات</div>
+            <div class="tab" data-tab="history">سجل المعاملات</div>
+        </div>
+        
+        <!-- إنشاء عملة جديدة -->
+        <div class="tab-content active" id="create-tab">
+            <h2>إنشاء عملة جديدة</h2>
+            <div>
+                <label for="ownerName">اسم المالك:</label>
+                <input type="text" id="ownerName" placeholder="أدخل اسم المالك">
+            </div>
+            <div>
+                <label for="currencyValue">قيمة العملة:</label>
+                <input type="number" id="currencyValue" placeholder="أدخل قيمة العملة">
+            </div>
+            <button id="createCurrency">إنشاء عملة</button>
+            <div id="createResult" class="result"></div>
+        </div>
+        
+        <!-- نقل ملكية -->
+        <div class="tab-content" id="transfer-tab">
+            <h2>نقل ملكية عملة</h2>
+            <div>
+                <label for="serialNumber">الرقم التسلسلي للعملة:</label>
+                <input type="text" id="serialNumber" placeholder="أدخل الرقم التسلسلي للعملة">
+            </div>
+            <div>
+                <label for="newOwner">اسم المالك الجديد:</label>
+                <input type="text" id="newOwner" placeholder="أدخل اسم المالك الجديد">
+            </div>
+            <button id="transferOwnership">نقل الملكية</button>
+            <div id="transferResult" class="result"></div>
+        </div>
+        
+        <!-- عرض العملات -->
+        <div class="tab-content" id="view-tab">
+            <h2>عرض جميع العملات</h2>
+            <div class="search-bar">
+                <input type="text" id="searchCurrency" placeholder="بحث عن عملة (رقم تسلسلي أو اسم مالك)">
+                <button id="searchButton">بحث</button>
+            </div>
+            <table id="currenciesTable">
+                <thead>
+                    <tr>
+                        <th>الرقم التسلسلي</th>
+                        <th>المالك</th>
+                        <th>القيمة</th>
+                        <th>تاريخ الإنشاء</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <!-- سجل المعاملات -->
+        <div class="tab-content" id="history-tab">
+            <h2>سجل المعاملات</h2>
+            <div class="search-bar">
+                <input type="text" id="searchTransaction" placeholder="بحث عن معاملة (رقم تسلسلي أو رمز الموافقة)">
+                <button id="searchTransactionButton">بحث</button>
+            </div>
+            <div id="transactionsHistory"></div>
+        </div>
+    </div>
+    
+    <!-- قالب معاينة PDF -->
+    <div id="pdfPreview">
+        <div class="pdf-header">
+            <h2 id="pdf-title">إيصال المعاملة</h2>
+        </div>
+        <div id="pdf-content">
+            <p id="pdf-transaction-type"></p>
+            <p id="pdf-serial-number"></p>
+            <p id="pdf-owner"></p>
+            <p id="pdf-value"></p>
+            <p id="pdf-date"></p>
+            <p id="pdf-approval-code"></p>
+        </div>
+        <div class="pdf-footer">
+            <p>تم إنشاء هذا الإيصال بواسطة نظام مالي بسيط</p>
+            <p id="pdf-timestamp"></p>
+        </div>
+    </div>
+    
+    <div id="loading">جاري المعالجة...</div>
+    
+    <script>
+        // استخدام مكتبة jsPDF
+        const { jsPDF } = window.jspdf;
+        
+        // إعداد قاعدة البيانات المحلية
+        let currencies = JSON.parse(localStorage.getItem('currencies')) || [];
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        
+        // وظائف المساعدة
+        function generateSerialNumber() {
+            // إنشاء رقم تسلسلي فريد مكون من 12 رقم
+            return Math.floor(100000000000 + Math.random() * 900000000000).toString();
+        }
+        
+        function generateApprovalCode() {
+            // إنشاء رمز موافقة مكون من 6 أرقام
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+        
+        function formatDate(date) {
+            return new Date(date).toLocaleString('ar-SA');
+        }
+        
+        function saveCurrencies() {
+            localStorage.setItem('currencies', JSON.stringify(currencies));
+        }
+        
+        function saveTransactions() {
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="error">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 5000);
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="success">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 5000);
+        }
+        
+        // وظيفة إنشاء عملة جديدة
+        document.getElementById('createCurrency').addEventListener('click', function() {
+            const ownerName = document.getElementById('ownerName').value.trim();
+            const currencyValue = parseFloat(document.getElementById('currencyValue').value);
+            
+            if (!ownerName) {
+                showError('createResult', 'يرجى إدخال اسم المالك');
+                return;
+            }
+            
+            if (isNaN(currencyValue) || currencyValue <= 0) {
+                showError('createResult', 'يرجى إدخال قيمة صحيحة للعملة');
+                return;
+            }
+            
+            // إنشاء رقم تسلسلي فريد والتحقق من عدم تكراره
+            let serialNumber;
+            do {
+                serialNumber = generateSerialNumber();
+            } while (currencies.some(c => c.serialNumber === serialNumber));
+            
+            // إنشاء العملة الجديدة
+            const newCurrency = {
+                serialNumber,
+                owner: ownerName,
+                value: currencyValue,
+                createdAt: new Date().toISOString()
+            };
+            
+            currencies.push(newCurrency);
+            saveCurrencies();
+            
+            // إنشاء سجل معاملة
+            const approvalCode = generateApprovalCode();
+            const transaction = {
+                type: 'create',
+                serialNumber,
+                fromOwner: '',
+                toOwner: ownerName,
+                value: currencyValue,
+                date: new Date().toISOString(),
+                approvalCode
+            };
+            
+            transactions.push(transaction);
+            saveTransactions();
+            
+            // إظهار رسالة نجاح
+            showSuccess('createResult', `تم إنشاء عملة جديدة بنجاح! الرقم التسلسلي: ${serialNumber}`);
+            
+            // إعادة تعيين الحقول
+            document.getElementById('ownerName').value = '';
+            document.getElementById('currencyValue').value = '';
+            
+            // إنشاء ملف PDF
+            createPDF(transaction);
+        });
+        
+        // وظيفة نقل ملكية عملة
+        document.getElementById('transferOwnership').addEventListener('click', function() {
+            const serialNumber = document.getElementById('serialNumber').value.trim();
+            const newOwner = document.getElementById('newOwner').value.trim();
+            
+            if (!serialNumber) {
+                showError('transferResult', 'يرجى إدخال الرقم التسلسلي للعملة');
+                return;
+            }
+            
+            if (!newOwner) {
+                showError('transferResult', 'يرجى إدخال اسم المالك الجديد');
+                return;
+            }
+            
+            // البحث عن العملة في قاعدة البيانات
+            const currencyIndex = currencies.findIndex(c => c.serialNumber === serialNumber);
+            
+            if (currencyIndex === -1) {
+                showError('transferResult', 'لم يتم العثور على عملة بهذا الرقم التسلسلي');
+                return;
+            }
+            
+            const currency = currencies[currencyIndex];
+            const oldOwner = currency.owner;
+            
+            if (oldOwner === newOwner) {
+                showError('transferResult', 'المالك الجديد هو نفس المالك الحالي');
+                return;
+            }
+            
+            // تحديث مالك العملة
+            currency.owner = newOwner;
+            currencies[currencyIndex] = currency;
+            saveCurrencies();
+            
+            // إنشاء سجل معاملة
+            const approvalCode = generateApprovalCode();
+            const transaction = {
+                type: 'transfer',
+                serialNumber,
+                fromOwner: oldOwner,
+                toOwner: newOwner,
+                value: currency.value,
+                date: new Date().toISOString(),
+                approvalCode
+            };
+            
+            transactions.push(transaction);
+            saveTransactions();
+            
+            // إظهار رسالة نجاح
+            showSuccess('transferResult', `تم نقل ملكية العملة بنجاح من ${oldOwner} إلى ${newOwner}`);
+            
+            // إعادة تعيين الحقول
+            document.getElementById('serialNumber').value = '';
+            document.getElementById('newOwner').value = '';
+            
+            // إنشاء ملف PDF
+            createPDF(transaction);
+        });
+        
+        // وظيفة استعراض العملات
+        function displayCurrencies(currenciesToDisplay = currencies) {
+            const tableBody = document.querySelector('#currenciesTable tbody');
+            tableBody.innerHTML = '';
+            
+            if (currenciesToDisplay.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد عملات</td></tr>';
+                return;
+            }
+            
+            currenciesToDisplay.forEach(currency => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${currency.serialNumber}</td>
+                    <td>${currency.owner}</td>
+                    <td>${currency.value}</td>
+                    <td>${formatDate(currency.createdAt)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // وظيفة البحث عن العملات
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const searchTerm = document.getElementById('searchCurrency').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                displayCurrencies();
+                return;
+            }
+            
+            const filteredCurrencies = currencies.filter(c => 
+                c.serialNumber.toLowerCase().includes(searchTerm) || 
+                c.owner.toLowerCase().includes(searchTerm)
+            );
+            
+            displayCurrencies(filteredCurrencies);
+        });
+        
+        // وظيفة عرض سجل المعاملات
+        function displayTransactions(transactionsToDisplay = transactions) {
+            const historyContainer = document.getElementById('transactionsHistory');
+            historyContainer.innerHTML = '';
+            
+            if (transactionsToDisplay.length === 0) {
+                historyContainer.innerHTML = '<p style="text-align: center;">لا توجد معاملات</p>';
+                return;
+            }
+            
+            transactionsToDisplay.forEach(transaction => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                
+                let transactionType = '';
+                let transactionDetails = '';
+                
+                if (transaction.type === 'create') {
+                    transactionType = 'إنشاء عملة جديدة';
+                    transactionDetails = `المالك: ${transaction.toOwner}, القيمة: ${transaction.value}`;
+                } else if (transaction.type === 'transfer') {
+                    transactionType = 'نقل ملكية';
+                    transactionDetails = `من: ${transaction.fromOwner}, إلى: ${transaction.toOwner}, القيمة: ${transaction.value}`;
+                }
+                
+                item.innerHTML = `
+                    <strong>${transactionType}</strong> - الرقم التسلسلي: ${transaction.serialNumber}<br>
+                    ${transactionDetails}<br>
+                    التاريخ: ${formatDate(transaction.date)}<br>
+                    رمز الموافقة: ${transaction.approvalCode}
+                    <button class="download-pdf" data-id="${transaction.approvalCode}">تحميل PDF</button>
+                `;
+                
+                historyContainer.appendChild(item);
+            });
+            
+            // إضافة المستمعين لأزرار تحميل PDF
+            document.querySelectorAll('.download-pdf').forEach(button => {
+                button.addEventListener('click', function() {
+                    const approvalCode = this.getAttribute('data-id');
+                    const transaction = transactions.find(t => t.approvalCode === approvalCode);
+                    if (transaction) {
+                        createPDF(transaction);
+                    }
+                });
+            });
+        }
+        
+        // وظيفة البحث عن المعاملات
+        document.getElementById('searchTransactionButton').addEventListener('click', function() {
+            const searchTerm = document.getElementById('searchTransaction').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                displayTransactions();
+                return;
+            }
+            
+            const filteredTransactions = transactions.filter(t => 
+                t.serialNumber.toLowerCase().includes(searchTerm) || 
+                t.approvalCode.toLowerCase().includes(searchTerm) ||
+                (t.fromOwner && t.fromOwner.toLowerCase().includes(searchTerm)) ||
+                (t.toOwner && t.toOwner.toLowerCase().includes(searchTerm))
+            );
+            
+            displayTransactions(filteredTransactions);
+        });
+        
+        // وظيفة إنشاء ملف PDF
+        function createPDF(transaction) {
+            document.getElementById('loading').style.display = 'block';
+            
+            // تحديث محتوى معاينة PDF
+            let transactionTypeText = '';
+            let ownerText = '';
+            
+            if (transaction.type === 'create') {
+                document.getElementById('pdf-title').textContent = 'إيصال إنشاء عملة جديدة';
+                transactionTypeText = 'نوع المعاملة: إنشاء عملة جديدة';
+                ownerText = `المالك: ${transaction.toOwner}`;
+            } else if (transaction.type === 'transfer') {
+                document.getElementById('pdf-title').textContent = 'إيصال نقل ملكية عملة';
+                transactionTypeText = 'نوع المعاملة: نقل ملكية';
+                ownerText = `من المالك: ${transaction.fromOwner} إلى المالك: ${transaction.toOwner}`;
+            }
+            
+            document.getElementById('pdf-transaction-type').textContent = transactionTypeText;
+            document.getElementById('pdf-serial-number').textContent = `الرقم التسلسلي: ${transaction.serialNumber}`;
+            document.getElementById('pdf-owner').textContent = ownerText;
+            document.getElementById('pdf-value').textContent = `القيمة: ${transaction.value}`;
+            document.getElementById('pdf-date').textContent = `تاريخ المعاملة: ${formatDate(transaction.date)}`;
+            document.getElementById('pdf-approval-code').textContent = `رمز الموافقة: ${transaction.approvalCode}`;
+            document.getElementById('pdf-timestamp').textContent = `تم إنشاء هذا المستند في: ${formatDate(new Date().toISOString())}`;
+            
+            // عرض معاينة PDF لتحويلها إلى صورة
+            const pdfPreview = document.getElementById('pdfPreview');
+            pdfPreview.style.display = 'block';
+            
+            // استخدام html2canvas لتحويل المعاينة إلى صورة
+            html2canvas(pdfPreview, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                // إخفاء المعاينة بعد التحويل
+                pdfPreview.style.display = 'none';
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // حساب نسبة العرض والارتفاع
+                const imgWidth = 190;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                // إضافة الصورة إلى PDF
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                
+                // تحميل الملف
+                if (transaction.type === 'create') {
+                    pdf.save(`انشاء_عملة_${transaction.serialNumber}.pdf`);
+                } else {
+                    pdf.save(`نقل_ملكية_${transaction.serialNumber}.pdf`);
+                }
+                
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+        
+        // التنقل بين التبويبات
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // إزالة الفئة النشطة من جميع التبويبات
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // إضافة الفئة النشطة للتبويب المحدد
+                this.classList.add('active');
+                document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
+                
+                // تحديث العرض إن لزم الأمر
+                if (this.dataset.tab === 'view') {
+                    displayCurrencies();
+                } else if (this.dataset.tab === 'history') {
+                    displayTransactions();
+                }
+            });
+        });
+        
+        // تحميل البيانات عند بدء التطبيق
+        window.addEventListener('load', function() {
+            // عرض قائمة العملات والمعاملات الحالية
+            displayCurrencies();
+            displayTransactions();
+        });
+    </script>
+</body>
+</html>
